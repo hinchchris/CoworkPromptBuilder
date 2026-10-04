@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Build a clear Cowork prompt with Outcome, Input, Output, Judgement, and Boundary. A private, single-page prompt builder.">
+  <title>Cowork Prompt Builder</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f7f7fb; --surface: #ffffff; --ink: #202334; --muted: #585d71;
+      --accent: #6244c5; --accent-hover: #5033ac; --accent-soft: #eee9fc;
+      --border: #dedfea; --example: #f5f4fa; --green: #176749; --green-bg: #e9f6ee;
+      --amber: #765112; --amber-bg: #fff5df; --focus: #8660e0;
+      --shadow: 0 8px 28px rgb(32 35 52 / 5%); --backdrop: rgb(17 20 35 / 60%);
+      --white: #ffffff; --line: #a7a4bf;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #11121b; --surface: #1c1e2b; --ink: #eff0f7; --muted: #b6b9cd;
+        --accent: #ba9fff; --accent-hover: #d2bfff; --accent-soft: #302644;
+        --border: #3e4156; --example: #252737; --green: #9de0b8; --green-bg: #21392e;
+        --amber: #f2cd88; --amber-bg: #3b301e; --focus: #c2a6ff;
+        --shadow: 0 8px 28px rgb(0 0 0 / 14%); --white: #171022; --line: #747891;
+      }
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.6; }
+    button, textarea { font: inherit; }
+    a { color: var(--accent); text-underline-offset: 3px; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .58; }
+    :focus-visible { outline: 3px solid var(--focus); outline-offset: 4px; }
+    .skip { position: absolute; inset-block-start: -80px; inset-inline-start: 1rem; z-index: 5; background: var(--surface); padding: .65rem 1rem; }
+    .skip:focus { inset-block-start: 1rem; }
+    .topbar { border-block-end: 1px solid var(--border); background: var(--surface); }
+    .topbar-inner { max-width: 1152px; margin-inline: auto; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+    .brand { display: flex; align-items: center; gap: .7rem; font-size: 1rem; font-weight: 700; letter-spacing: -.02em; }
+    .brand-mark { display: grid; place-items: center; inline-size: 32px; block-size: 32px; background: var(--accent); color: var(--white); border-radius: 9px; font-size: 1.15rem; }
+    .topnote { color: var(--muted); font-size: .8rem; }
+    .shell { max-width: 1152px; margin-inline: auto; padding: 3.4rem 2rem 2rem; }
+    .hero { margin-block-end: 2.4rem; max-width: 790px; }
+    .eyebrow { color: var(--accent); text-transform: uppercase; letter-spacing: .14em; font-size: .72rem; font-weight: 750; margin: 0 0 .8rem; }
+    h1 { font-size: clamp(2rem, 4.7vw, 3.15rem); line-height: 1.13; letter-spacing: -.055em; margin: 0 0 1rem; font-weight: 750; }
+    .hero p:last-child { color: var(--muted); font-size: 1.05rem; max-width: 670px; margin: 0; }
+    .layout { display: grid; grid-template-columns: 245px minmax(0, 1fr); align-items: start; gap: 2.5rem; }
+    .sidebar { position: sticky; inset-block-start: 1.5rem; }
+    .side-title { margin: 0 0 .8rem; font-size: .76rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .steps { list-style: none; margin: 0; padding: 0; }
+    .steps li { margin-block-end: .28rem; }
+    .steps a { display: flex; align-items: center; gap: .7rem; padding: .65rem .7rem; border-radius: 9px; text-decoration: none; color: var(--ink); font-size: .88rem; }
+    .steps a:hover { background: var(--accent-soft); }
+    .step-count { display: inline-grid; place-items: center; inline-size: 26px; block-size: 26px; border: 1px solid var(--border); border-radius: 50%; font-size: .72rem; color: var(--muted); background: var(--surface); }
+    .steps a.filled .step-count { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); }
+    .step-state { margin-inline-start: auto; color: var(--muted); font-size: .7rem; }
+    .steps a.filled .step-state { color: var(--accent); }
+    .progress { margin: 1.3rem .7rem; }
+    .progress-label { font-size: .78rem; color: var(--muted); margin: 0 0 .6rem; }
+    .progress-track { block-size: 5px; background: var(--border); border-radius: 10px; overflow: hidden; }
+    .progress-fill { inline-size: 0%; block-size: 100%; background: var(--accent); transition: inline-size .18s ease; }
+    .privacy { border-block-start: 1px solid var(--border); margin-block-start: 1.5rem; padding: 1.2rem .7rem 0; color: var(--muted); font-size: .78rem; }
+    .privacy strong { color: var(--ink); display: block; margin-block-end: .35rem; font-size: .83rem; }
+    .privacy p { margin: 0; }
+    .workspace { min-inline-size: 0; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; gap: .7rem; margin-block-end: 1rem; flex-wrap: wrap; }
+    .optional-note { margin: 0; font-size: .82rem; color: var(--muted); }
+    .toolbar-actions { display: flex; gap: .7rem; }
+    .text-button { border: 0; background: none; color: var(--accent); font-size: .81rem; padding: .3rem 0; font-weight: 600; }
+    .text-button:hover { text-decoration: underline; }
+    .text-button.subtle { color: var(--muted); }
+    .block { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; margin-block-end: 1rem; box-shadow: var(--shadow); scroll-margin-block-start: 1.5rem; }
+    .block-heading { display: flex; align-items: center; gap: .7rem; margin-block-end: .5rem; }
+    .number { color: var(--accent); font-size: .73rem; font-weight: 750; background: var(--accent-soft); border-radius: 7px; padding: .22rem .5rem; }
+    h2 { font-size: 1.15rem; line-height: 1.3; letter-spacing: -.02em; margin: 0; }
+    .optional-tag { margin-inline-start: auto; color: var(--muted); font-size: .7rem; border: 1px solid var(--border); padding: .07rem .45rem; border-radius: 5px; }
+    .description { color: var(--muted); margin: 0 0 .9rem; font-size: .88rem; }
+    .example { background: var(--example); border-radius: 8px; border-inline-start: 3px solid var(--line); padding: .65rem .85rem; margin: 0 0 1rem; font-size: .82rem; color: var(--muted); }
+    .example strong { color: var(--ink); font-weight: 650; }
+    textarea { display: block; inline-size: 100%; resize: vertical; min-block-size: 104px; border: 1px solid var(--border); background: var(--bg); color: var(--ink); border-radius: 8px; padding: .8rem .9rem; line-height: 1.55; font-size: .9rem; }
+    textarea::placeholder { color: var(--muted); opacity: 1; }
+    textarea:focus { border-color: var(--accent); outline: 2px solid var(--accent-soft); outline-offset: 1px; }
+    .build-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: .6rem 0 1.4rem; }
+    .build-bar p { margin: 0; color: var(--muted); font-size: .82rem; }
+    .button { border: 1px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 9px; padding: .7rem 1.1rem; font-weight: 650; font-size: .88rem; display: inline-flex; align-items: center; justify-content: center; gap: .6rem; min-block-size: 44px; }
+    .button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+    .button.primary { background: var(--accent); border-color: var(--accent); color: var(--white); }
+    .button.primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+    .button .arrow { font-size: 1.2rem; line-height: 1; }
+    .result { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.5rem; scroll-margin-block-start: 1.5rem; }
+    .result-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem; margin-block-end: 1rem; }
+    .result .eyebrow { margin-block-end: .35rem; }
+    .result textarea { min-block-size: 350px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .82rem; }
+    .result-note { color: var(--muted); font-size: .8rem; margin: .9rem 0 0; }
+    .status { margin: .8rem 0 0; color: var(--green); font-size: .84rem; min-block-size: 1.5em; }
+    .notice { color: var(--amber); background: var(--amber-bg); border-radius: 8px; padding: .65rem .8rem; font-size: .82rem; margin: 0 0 1rem; }
+    .page-status { color: var(--muted); font-size: .82rem; margin: .2rem 0 1rem; min-block-size: 1.4em; }
+    footer { border-block-start: 1px solid var(--border); margin-block-start: 2rem; padding-block-start: 1rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; color: var(--muted); font-size: .75rem; }
+    dialog { inline-size: min(480px, calc(100% - 2rem)); padding: 1.6rem; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+    dialog::backdrop { background: var(--backdrop); }
+    dialog h2 { font-size: 1.3rem; }
+    dialog p, dialog ul { color: var(--muted); font-size: .9rem; }
+    dialog ul { padding-inline-start: 1.4rem; margin-block: .8rem; }
+    .dialog-actions { display: flex; gap: .65rem; flex-wrap: wrap; justify-content: flex-end; margin-block-start: 1.3rem; }
+    .dialog-label { color: var(--amber); background: var(--amber-bg); padding: .2rem .6rem; border-radius: 5px; display: inline-block; font-size: .72rem; font-weight: 700; margin-block-end: 1rem; }
+    .noscript { background: var(--amber-bg); color: var(--amber); border-radius: 10px; padding: 1rem; margin-block-end: 1rem; }
+    @media (max-width: 800px) {
+      .layout { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+      .sidebar { position: static; }
+      .steps { display: flex; gap: .2rem; flex-wrap: wrap; }
+      .steps a { padding: .4rem .45rem; font-size: .8rem; }
+      .step-state, .side-title, .sidebar .privacy { display: none; }
+      .progress { margin: .8rem .45rem 0; }
+      .shell { padding-block-start: 2rem; }
+    }
+    @media (max-width: 480px) {
+      .shell, .topbar-inner { padding-inline: 1rem; }
+      .topnote { display: none; }
+      .block, .result { padding: 1.1rem; }
+      .hero { margin-block-end: 1.6rem; }
+      .build-bar .primary { inline-size: 100%; }
+      .dialog-actions .button { inline-size: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .progress-fill { transition: none; } }
+    @media print {
+      :root { --bg: #ffffff; --surface: #ffffff; --ink: #000000; --muted: #444444; --border: #aaaaaa; }
+      .topbar, .hero, .sidebar, .toolbar, #builder-form, footer, .result-header .button, .page-status { display: none; }
+      .shell { padding: 0; } .layout { display: block; } .result { border: 0; padding: 0; }
+      #generated-prompt { display: none; } #print-prompt { display: block !important; white-space: pre-wrap; overflow-wrap: anywhere; font: 11pt/1.5 sans-serif; }
+      .result-note, .status, .notice { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip" href="#builder-form">Skip to the prompt builder</a>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">↗</span> Cowork Prompt Builder</div>
+      <span class="topnote">Five blocks. One clear brief.</span>
+    </div>
+  </header>
+  <main class="shell">
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">From a request to a ready-to-use prompt</p>
+      <h1 id="page-title">Delegate the work.<br>Not just the question.</h1>
+      <p>Tell Cowork what you want accomplished, what to use, and what good looks like. Fill in the blocks below, then create a prompt you can copy into Cowork.</p>
+    </section>
+    <noscript><p class="noscript">This single webpage needs JavaScript enabled to combine your entries and copy the prompt. No sign-in or installation is needed.</p></noscript>
+    <div class="layout">
+      <aside class="sidebar" aria-label="Prompt sections and privacy">
+        <p class="side-title">Your five building blocks</p>
+        <nav aria-label="Jump to a section">
+          <ol class="steps">
+            <li><a id="nav-outcome" href="#block-outcome"><span class="step-count">1</span>Outcome<span class="step-state">Empty</span></a></li>
+            <li><a id="nav-input" href="#block-input"><span class="step-count">2</span>Input<span class="step-state">Empty</span></a></li>
+            <li><a id="nav-output" href="#block-output"><span class="step-count">3</span>Output<span class="step-state">Empty</span></a></li>
+            <li><a id="nav-judgement" href="#block-judgement"><span class="step-count">4</span>Judgement<span class="step-state">Empty</span></a></li>
+            <li><a id="nav-boundary" href="#block-boundary"><span class="step-count">5</span>Boundary<span class="step-state">Empty</span></a></li>
+          </ol>
+        </nav>
+        <div class="progress">
+          <p class="progress-label" id="progress-label">0 of 5 blocks filled · all optional</p>
+          <div class="progress-track" aria-hidden="true"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+        <div class="privacy"><strong>Your entries stay in this page.</strong><p>No uploads, tracking, or saved form data. This builder does not connect to Cowork or send your entries anywhere. Use only information you are permitted to share.</p></div>
+      </aside>
+      <div class="workspace">
+        <div class="toolbar">
+          <p class="optional-note">All fields are optional. Examples are fictional.</p>
+          <div class="toolbar-actions"><button type="button" class="text-button" id="load-example">Try an example</button><button type="button" class="text-button subtle" id="clear-form">Clear all</button></div>
+        </div>
+        <form id="builder-form">
+          <section class="block" id="block-outcome" aria-labelledby="heading-outcome">
+            <div class="block-heading"><span class="number" aria-hidden="true">01</span><h2 id="heading-outcome"><label for="outcome">Outcome</label></h2><span class="optional-tag">Optional</span></div>
+            <p class="description" id="help-outcome">What do you want accomplished, and why? Describe the goal, audience, or decision the work should support.</p>
+            <p class="example" id="example-outcome"><strong>Example:</strong> Help Contoso Coffee's leadership decide how to respond to Fourth Coffee's new subscription offering ahead of our next strategy meeting.</p>
+            <textarea id="outcome" name="outcome" rows="3" aria-describedby="help-outcome example-outcome" placeholder="What should Cowork help you accomplish?"></textarea>
+          </section>
+          <section class="block" id="block-input" aria-labelledby="heading-input">
+            <div class="block-heading"><span class="number" aria-hidden="true">02</span><h2 id="heading-input"><label for="input">Input</label></h2><span class="optional-tag">Optional</span></div>
+            <p class="description" id="help-input">What should Cowork work from? Name the files, notes, emails, links, or data sources you will provide or authorize it to use.</p>
+            <p class="example" id="example-input"><strong>Example:</strong> Use the competitor announcement and our customer feedback notes that I will attach in Cowork. Use only those materials, not web research.</p>
+            <textarea id="input" name="input" rows="3" aria-describedby="help-input example-input" placeholder="List the materials or paste the context Cowork should use."></textarea>
+          </section>
+          <section class="block" id="block-output" aria-labelledby="heading-output">
+            <div class="block-heading"><span class="number" aria-hidden="true">03</span><h2 id="heading-output"><label for="output">Output</label></h2><span class="optional-tag">Optional</span></div>
+            <p class="description" id="help-output">What should Cowork deliver? Specify the format, structure, length, tone, and any sections or columns you need.</p>
+            <p class="example" id="example-output"><strong>Example:</strong> Create a one-page Word brief with an executive summary, a comparison table, three response options, and a recommended next step. Keep the tone direct and business-focused.</p>
+            <textarea id="output" name="output" rows="3" aria-describedby="help-output example-output" placeholder="Describe the finished deliverable you want."></textarea>
+          </section>
+          <section class="block" id="block-judgement" aria-labelledby="heading-judgement">
+            <div class="block-heading"><span class="number" aria-hidden="true">04</span><h2 id="heading-judgement"><label for="judgement">Judgement</label></h2><span class="optional-tag">Optional</span></div>
+            <p class="description" id="help-judgement">What does good look like? Give Cowork the quality criteria, priorities, and trade-offs it should use to assess its work.</p>
+            <p class="example" id="example-judgement"><strong>Example:</strong> Back each factual claim with a source. Separate facts from assumptions. Prioritize options that protect customer retention and are feasible within 90 days. Explain the recommendation's trade-offs.</p>
+            <textarea id="judgement" name="judgement" rows="3" aria-describedby="help-judgement example-judgement" placeholder="How should Cowork decide whether the result is good?"></textarea>
+          </section>
+          <section class="block" id="block-boundary" aria-labelledby="heading-boundary">
+            <div class="block-heading"><span class="number" aria-hidden="true">05</span><h2 id="heading-boundary"><label for="boundary">Boundary</label></h2><span class="optional-tag">Optional</span></div>
+            <p class="description" id="help-boundary">What are the limits? Set scope, exclusions, privacy rules, and which actions need your approval.</p>
+            <p class="example" id="example-boundary"><strong>Example:</strong> Do not invent pricing or customer metrics. Do not send emails, contact anyone, or change source files. If essential evidence is missing, ask me before proceeding.</p>
+            <textarea id="boundary" name="boundary" rows="3" aria-describedby="help-boundary example-boundary" placeholder="What must Cowork avoid or ask permission to do?"></textarea>
+          </section>
+          <div class="build-bar"><p>Blank blocks? You'll choose whether to continue.</p><button type="submit" class="button primary" id="create-prompt">Create prompt <span class="arrow" aria-hidden="true">→</span></button></div>
+        </form>
+        <p class="page-status" id="page-status" role="status" aria-live="polite"></p>
+        <section class="result" id="result" aria-labelledby="result-title" hidden>
+          <div class="result-header"><div><p class="eyebrow">Ready for Cowork</p><h2 id="result-title"><label for="generated-prompt">Your assembled prompt</label></h2></div><button type="button" class="button primary" id="copy-prompt">Copy prompt</button></div>
+          <p class="notice" id="stale-notice" hidden>Your blocks have changed. Select Create prompt again to update the prompt before copying.</p>
+          <textarea id="generated-prompt" rows="16" readonly aria-describedby="result-note" spellcheck="false"></textarea>
+          <pre id="print-prompt" hidden></pre>
+          <p class="result-note" id="result-note">Copy this into Cowork and attach any materials you listed. This page builds the prompt; it does not run it.</p>
+          <p class="status" id="copy-status" role="status" aria-live="polite"></p>
+        </section>
+      </div>
+    </div>
+    <footer><span>Outcome / Input / Output / Judgement / Boundary</span><span>Single page · No account needed · Nothing submitted</span></footer>
+  </main>
+  <dialog id="missing-dialog" aria-labelledby="missing-title" aria-describedby="missing-description">
+    <span class="dialog-label">A few blocks are blank</span>
+    <h2 id="missing-title">Proceed without them?</h2>
+    <p id="missing-description">You didn't provide information in the following blocks:</p>
+    <ul id="missing-list"></ul>
+    <p>Your prompt will mark those blocks as not provided. Would you like to proceed anyway?</p>
+    <div class="dialog-actions"><button type="button" class="button" id="fix-missing" autofocus>No, I'll add details</button><button type="button" class="button primary" id="proceed-missing">Yes, create prompt</button></div>
+  </dialog>
+  <script>
+    'use strict';
+    const blocks = [
+      { id: 'outcome', label: 'Outcome' },
+      { id: 'input', label: 'Input' },
+      { id: 'output', label: 'Output' },
+      { id: 'judgement', label: 'Judgement' },
+      { id: 'boundary', label: 'Boundary' }
+    ];
+    const sample = {
+      outcome: "Help Contoso Coffee's leadership decide how to respond to Fourth Coffee's new subscription offering ahead of our next strategy meeting.",
+      input: 'Use the competitor announcement and our customer feedback notes that I will attach in Cowork. Use only those materials, not web research.',
+      output: 'Create a one-page Word brief with an executive summary, a comparison table, three response options, and a recommended next step. Keep the tone direct and business-focused.',
+      judgement: "Back each factual claim with a source. Separate facts from assumptions. Prioritize options that protect customer retention and are feasible within 90 days. Explain the recommendation's trade-offs.",
+      boundary: 'Do not invent pricing or customer metrics. Do not send emails, contact anyone, or change source files. If essential evidence is missing, ask me before proceeding.'
+    };
+    const byId = (id) => document.getElementById(id);
+    const form = byId('builder-form');
+    const dialog = byId('missing-dialog');
+    let pendingValues = null;
+    let pendingMissing = [];
+    let generatedSnapshot = null;
+    let copying = false;
+    const readValues = () => Object.fromEntries(blocks.map(({ id }) => [id, byId(id).value.trim()]));
+    const signature = (values) => JSON.stringify(values);
+
+    function updateState() {
+      const values = readValues();
+      const filled = blocks.filter(({ id }) => values[id]).length;
+      blocks.forEach(({ id }) => {
+        const link = byId('nav-' + id);
+        link.classList.toggle('filled', Boolean(values[id]));
+        link.querySelector('.step-state').textContent = values[id] ? 'Filled' : 'Empty';
+      });
+      byId('progress-label').textContent = `${filled} of 5 blocks filled · all optional`;
+      byId('progress-fill').style.inlineSize = `${filled / blocks.length * 100}%`;
+      const stale = generatedSnapshot !== null && generatedSnapshot !== signature(values);
+      byId('stale-notice').hidden = !stale;
+      byId('copy-prompt').disabled = stale || copying;
+      byId('copy-status').textContent = '';
+    }
+
+    function assemblePrompt(values) {
+      const sections = blocks.map(({ id, label }) => `${label.toUpperCase()}\n${values[id] || '[Not provided]'}`);
+      const instructions = [
+        'Use the brief above to carry out the requested work and produce the specified deliverable.',
+        'Treat blocks marked [Not provided] as unspecified, not as permission to invent facts or take additional actions.',
+        'If the outcome is missing or unclear, ask me what I want accomplished before starting. For other gaps, ask only when essential; otherwise state any reasonable assumptions.',
+        'Honor the boundaries above and flag any conflicting requirements before proceeding.'
+      ];
+      return 'COWORK TASK BRIEF\n\n' + sections.join('\n\n') + '\n\nHOW TO HANDLE THIS BRIEF\n' + instructions.join('\n');
+    }
+
+    function generate(values) {
+      const prompt = assemblePrompt(values);
+      byId('generated-prompt').value = prompt;
+      byId('print-prompt').textContent = prompt;
+      generatedSnapshot = signature(values);
+      byId('result').hidden = false;
+      updateState();
+      byId('page-status').textContent = 'Your prompt is ready. Review it, then copy it into Cowork.';
+      byId('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      byId('generated-prompt').focus({ preventScroll: true });
+    }
+
+    function returnToMissing() {
+      const first = pendingMissing[0];
+      pendingValues = null;
+      pendingMissing = [];
+      if (dialog.open) dialog.close();
+      if (first) {
+        byId('block-' + first.id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        byId(first.id).focus({ preventScroll: true });
+      }
+      byId('page-status').textContent = 'Add any details you want, then select Create prompt again.';
+    }
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const values = readValues();
+      const missing = blocks.filter(({ id }) => !values[id]);
+      if (!missing.length) { generate(values); return; }
+      pendingValues = values;
+      pendingMissing = missing;
+      byId('missing-list').replaceChildren();
+      missing.forEach(({ label }) => {
+        const item = document.createElement('li');
+        item.textContent = label;
+        byId('missing-list').appendChild(item);
+      });
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+        byId('fix-missing').focus();
+      } else {
+        const proceed = window.confirm("You didn't provide information in: " + missing.map(({ label }) => label).join(', ') + '. Would you like to proceed anyway?');
+        if (proceed) { generate(values); pendingValues = null; pendingMissing = []; }
+        else { returnToMissing(); }
+      }
+    });
+    byId('fix-missing').addEventListener('click', returnToMissing);
+    dialog.addEventListener('cancel', (event) => { event.preventDefault(); returnToMissing(); });
+    byId('proceed-missing').addEventListener('click', () => {
+      const values = pendingValues;
+      pendingValues = null;
+      pendingMissing = [];
+      dialog.close();
+      if (values) generate(values);
+    });
+    blocks.forEach(({ id }) => byId(id).addEventListener('input', () => {
+      updateState();
+      byId('page-status').textContent = '';
+    }));
+    byId('load-example').addEventListener('click', () => {
+      if (blocks.some(({ id }) => byId(id).value.trim()) && !window.confirm('Replace your current entries with the fictional Contoso Coffee example?')) return;
+      blocks.forEach(({ id }) => { byId(id).value = sample[id]; });
+      updateState();
+      byId('page-status').textContent = 'Fictional example loaded. Edit any block or select Create prompt.';
+      byId('outcome').focus();
+    });
+    byId('clear-form').addEventListener('click', () => {
+      if ((blocks.some(({ id }) => byId(id).value.trim()) || generatedSnapshot !== null) && !window.confirm('Clear all entries and the generated prompt?')) return;
+      blocks.forEach(({ id }) => { byId(id).value = ''; });
+      generatedSnapshot = null;
+      pendingValues = null;
+      pendingMissing = [];
+      byId('generated-prompt').value = '';
+      byId('print-prompt').textContent = '';
+      byId('result').hidden = true;
+      updateState();
+      byId('page-status').textContent = 'All blocks cleared.';
+      byId('outcome').focus();
+    });
+    byId('copy-prompt').addEventListener('click', async () => {
+      if (copying || generatedSnapshot === null || generatedSnapshot !== signature(readValues())) return;
+      const output = byId('generated-prompt');
+      let copied = false;
+      copying = true;
+      byId('copy-prompt').disabled = true;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          try { await navigator.clipboard.writeText(output.value); copied = true; } catch (_) { /* Use the selection fallback below. */ }
+        }
+        if (!copied) {
+          output.focus();
+          output.select();
+          output.setSelectionRange(0, output.value.length);
+          try { copied = Boolean(document.execCommand('copy')); } catch (_) { copied = false; }
+        }
+      } finally {
+        copying = false;
+        updateState();
+        byId('copy-status').textContent = copied ? 'Prompt copied. Paste it into Cowork.' : 'Automatic copy is unavailable. The prompt is selected; use Ctrl+C or Command+C, or your device’s Copy command.';
+      }
+    });
+    updateState();
+  </script>
+</body>
+</html>
